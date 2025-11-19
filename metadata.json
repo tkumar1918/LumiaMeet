@@ -1,0 +1,8 @@
+{
+  "name": "Lumina Meet",
+  "description": "A high-performance, beautiful video conferencing application built with LiveKit and React.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
