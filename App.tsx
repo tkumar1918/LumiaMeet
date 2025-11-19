@@ -14,9 +14,13 @@ const App: React.FC = () => {
     
     try {
       // Dynamically determine the hostname (localhost or IP address)
-      const hostname = window.location.hostname;
+      // Fallback to 'localhost' if window.location.hostname is empty (prevents http://:8080 errors)
+      const hostname = window.location.hostname || 'localhost';
       const tokenEndpoint = `http://${hostname}:8080/token`;
       const liveKitUrl = `ws://${hostname}:7880`;
+
+      console.log(`[App] Fetching token from: ${tokenEndpoint}`);
+      console.log(`[App] LiveKit Server URL: ${liveKitUrl}`);
 
       const response = await fetch(tokenEndpoint, {
         method: 'POST',
@@ -30,7 +34,7 @@ const App: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to obtain token: ${response.statusText}`);
+        throw new Error(`Failed to obtain token: ${response.statusText} (${response.status})`);
       }
 
       const data = await response.json();
@@ -47,7 +51,7 @@ const App: React.FC = () => {
         videoEnabled  // Store user preference
       });
     } catch (err) {
-      console.error(err);
+      console.error("[App] Connection failed:", err);
       setError(err instanceof Error ? err.message : 'Failed to connect. Ensure the token server is running and accessible.');
     } finally {
       setIsLoading(false);
