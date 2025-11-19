@@ -3,7 +3,7 @@ import { Video, Mic, MicOff, VideoOff, Radio, Loader2, Keyboard, AlertTriangle }
 import { createLocalVideoTrack, LocalVideoTrack } from 'livekit-client';
 
 interface PreJoinScreenProps {
-  onJoin: (roomName: string, participantName: string) => void;
+  onJoin: (roomName: string, participantName: string, audioEnabled: boolean, videoEnabled: boolean) => void;
   isLoading: boolean;
   error?: string;
 }
@@ -39,13 +39,16 @@ export const PreJoinScreen: React.FC<PreJoinScreenProps> = ({ onJoin, isLoading,
         }
       } catch (e) {
         console.error("Failed to acquire camera", e);
+        // If we fail to acquire camera, automatically turn off the video toggle
+        // so the user can still join audio-only without getting stuck.
+        setIsVideoEnabled(false);
+        
         // Specific check for secure context issues common on mobile LAN
         if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-          setMediaError("Camera access requires HTTPS or localhost. Browsers block camera access on http://IP_ADDRESS.");
+          setMediaError("Camera blocked. Browser requires HTTPS or localhost.");
         } else {
-          setMediaError("Could not access camera. Check permissions or device connection.");
+          setMediaError("Camera permission denied or device not found.");
         }
-        setIsVideoEnabled(false);
       }
     };
 
@@ -81,7 +84,8 @@ export const PreJoinScreen: React.FC<PreJoinScreenProps> = ({ onJoin, isLoading,
         videoTrack.stop();
         setVideoTrack(null);
       }
-      onJoin(roomName, name);
+      // Pass the current media state (enabled/disabled) to the join handler
+      onJoin(roomName, name, isAudioEnabled, isVideoEnabled);
     }
   };
 

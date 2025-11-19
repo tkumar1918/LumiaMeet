@@ -8,7 +8,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
 
-  const handleJoin = async (roomName: string, participantName: string) => {
+  const handleJoin = async (roomName: string, participantName: string, audioEnabled: boolean, videoEnabled: boolean) => {
     setIsLoading(true);
     setError(undefined);
     
@@ -43,6 +43,8 @@ const App: React.FC = () => {
         url: liveKitUrl,
         token: data.token,
         name: participantName,
+        audioEnabled, // Store user preference
+        videoEnabled  // Store user preference
       });
     } catch (err) {
       console.error(err);

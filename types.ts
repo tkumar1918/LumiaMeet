@@ -2,6 +2,8 @@ export interface SessionConfig {
   url: string;
   token: string;
   name: string;
+  audioEnabled: boolean;
+  videoEnabled: boolean;
 }
 
 export enum ConnectionState {

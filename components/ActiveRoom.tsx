@@ -24,8 +24,8 @@ export const ActiveRoom: React.FC<ActiveRoomProps> = ({ config, onLeave }) => {
       serverUrl={config.url}
       token={config.token}
       connect={true}
-      video={true}
-      audio={true}
+      video={config.videoEnabled} // Use the passed preference
+      audio={config.audioEnabled} // Use the passed preference
       onDisconnected={onLeave}
       className="h-screen w-screen bg-dark-950 flex flex-col overflow-hidden"
       data-lk-theme="default"
