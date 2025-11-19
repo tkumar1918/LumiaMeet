@@ -17,72 +17,104 @@ export const PreJoinScreen: React.FC<PreJoinScreenProps> = ({ onJoin, isLoading,
   const [mediaError, setMediaError] = useState<string | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoTrack, setVideoTrack] = useState<LocalVideoTrack | null>(null);
+  
+  // We use a ref to track the active video track to ensure cleanup works 
+  // regardless of closure staleness during unmount/re-renders.
+  const videoTrackRef = useRef<LocalVideoTrack | null>(null);
+  // We also keep state to trigger re-renders for UI updates
+  const [, setForceUpdate] = useState({});
 
   // Initialize local video preview
   useEffect(() => {
     let mounted = true;
 
-    const startVideo = async () => {
+    const toggleVideo = async () => {
       try {
         setMediaError(null);
-        if (isVideoEnabled && !videoTrack) {
+
+        if (isVideoEnabled) {
+          // If track already exists, do nothing
+          if (videoTrackRef.current) return;
+
           const track = await createLocalVideoTrack({
             resolution: { width: 640, height: 480 },
           });
-          if (mounted) {
-            setVideoTrack(track);
+
+          if (!mounted) {
+            // Component unmounted while waiting for track
+            await track.stop();
+            return;
           }
-        } else if (!isVideoEnabled && videoTrack) {
-          videoTrack.stop();
-          setVideoTrack(null);
+
+          videoTrackRef.current = track;
+          setForceUpdate({}); // Trigger render to attach track
+          
+          // Attach to video element if available
+          if (videoRef.current) {
+            track.attach(videoRef.current);
+          }
+        } else {
+          // Turn off video
+          if (videoTrackRef.current) {
+            // Detach first
+            if (videoRef.current) {
+              videoTrackRef.current.detach(videoRef.current);
+            }
+            await videoTrackRef.current.stop();
+            videoTrackRef.current = null;
+            setForceUpdate({});
+          }
         }
       } catch (e) {
         console.error("Failed to acquire camera", e);
-        // If we fail to acquire camera, automatically turn off the video toggle
-        // so the user can still join audio-only without getting stuck.
-        setIsVideoEnabled(false);
-        
-        // Specific check for secure context issues common on mobile LAN
-        if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-          setMediaError("Camera blocked. Browser requires HTTPS or localhost.");
-        } else {
-          setMediaError("Camera permission denied or device not found.");
+        if (mounted) {
+          setIsVideoEnabled(false);
+          
+          // Specific check for secure context issues common on mobile LAN
+          if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+            setMediaError("Camera blocked. Browser requires HTTPS or localhost.");
+          } else {
+            setMediaError("Camera permission denied or device not found.");
+          }
         }
       }
     };
 
-    startVideo();
+    toggleVideo();
 
     return () => {
       mounted = false;
-      // Cleanup track on unmount or when toggled off
-      if (videoTrack) {
-        videoTrack.stop();
-      }
+      // IMPORTANT: We do NOT stop the track here if we are just toggling deps.
+      // But since we only depend on [isVideoEnabled], this runs when user toggles.
+      // We handle stop logic inside the effect for the toggle case.
+      // However, we MUST handle the unmount case (navigating away/joining).
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVideoEnabled]);
 
-  // Attach track to video element
+  // Cleanup on unmount specifically
   useEffect(() => {
-    if (videoTrack && videoRef.current) {
-      videoTrack.attach(videoRef.current);
-    }
     return () => {
-      if (videoTrack) {
-        videoTrack.detach();
+      if (videoTrackRef.current) {
+        videoTrackRef.current.stop();
+        videoTrackRef.current = null;
       }
     };
-  }, [videoTrack]);
+  }, []);
+
+  // Re-attach logic if ref changes (e.g. unmount/remount of DOM node)
+  useEffect(() => {
+    if (videoTrackRef.current && videoRef.current) {
+        videoTrackRef.current.attach(videoRef.current);
+    }
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (roomName && name) {
       // Stop the preview track before joining so the main room can take over the device
-      if (videoTrack) {
-        videoTrack.stop();
-        setVideoTrack(null);
+      if (videoTrackRef.current) {
+        videoTrackRef.current.stop();
+        videoTrackRef.current = null;
       }
       // Pass the current media state (enabled/disabled) to the join handler
       onJoin(roomName, name, isAudioEnabled, isVideoEnabled);
@@ -107,7 +139,6 @@ export const PreJoinScreen: React.FC<PreJoinScreenProps> = ({ onJoin, isLoading,
               <video 
                 ref={videoRef} 
                 className="w-full h-full object-cover transform -scale-x-100" 
-                autoPlay 
                 muted 
                 playsInline 
               />
