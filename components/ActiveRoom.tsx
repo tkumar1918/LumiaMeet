@@ -24,10 +24,10 @@ export const ActiveRoom: React.FC<ActiveRoomProps> = ({ config, onLeave }) => {
       serverUrl={config.url}
       token={config.token}
       connect={true}
-      video={config.videoEnabled} // Use the passed preference
-      audio={config.audioEnabled} // Use the passed preference
+      video={config.videoEnabled}
+      audio={config.audioEnabled}
       onDisconnected={onLeave}
-      className="h-screen w-screen bg-dark-950 flex flex-col overflow-hidden"
+      className="h-screen w-screen overflow-hidden relative"
       data-lk-theme="default"
     >
       <RoomContent 
@@ -45,7 +45,6 @@ const RoomContent: React.FC<{
   setIsChatOpen: (v: boolean) => void;
   onLeave: () => void;
 }> = ({ isChatOpen, setIsChatOpen, onLeave }) => {
-  // Get all video tracks from Camera or ScreenShare
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -56,46 +55,48 @@ const RoomContent: React.FC<{
 
   const getGridLayout = (count: number) => {
     if (count === 0) return 'flex items-center justify-center';
-    if (count === 1) return 'grid grid-cols-1 max-w-5xl mx-auto h-full max-h-[80vh]';
-    if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl mx-auto h-full max-h-[60vh] items-center';
-    if (count <= 4) return 'grid grid-cols-2 gap-4 max-w-5xl mx-auto h-full max-h-[80vh]';
-    if (count <= 9) return 'grid grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto h-full';
-    return 'grid grid-cols-3 md:grid-cols-4 gap-4';
+    if (count === 1) return 'grid grid-cols-1 max-w-6xl mx-auto h-full';
+    if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 gap-4 max-w-7xl mx-auto h-full items-center';
+    if (count <= 4) return 'grid grid-cols-2 gap-4 max-w-6xl mx-auto h-full content-center';
+    if (count <= 9) return 'grid grid-cols-2 md:grid-cols-3 gap-4 max-w-7xl mx-auto h-full content-center';
+    return 'grid grid-cols-3 md:grid-cols-4 gap-4 h-full content-center';
   };
 
   return (
-    <>
-      <div className="flex-1 relative flex p-4 md:p-6 overflow-hidden">
-        {/* Video Grid Area */}
-        <div className={`flex-1 transition-all duration-300 ${isChatOpen ? 'mr-0 md:mr-4' : ''}`}>
-          
-          {tracks.length === 0 ? (
-             <div className="h-full flex flex-col items-center justify-center text-slate-500">
-               <Loader2 className="animate-spin mb-4 text-brand-500" size={48} />
-               <p className="text-lg">Waiting for participants...</p>
-             </div>
-          ) : (
-            <div className={`w-full h-full ${getGridLayout(tracks.length)} content-center`}>
-              {tracks.map((track) => (
-                <ParticipantTile 
-                  key={track.participant.sid ?? track.participant.identity ?? track.source} 
-                  trackRef={track} 
-                  className="w-full h-full shadow-2xl ring-1 ring-white/5 bg-dark-800"
-                />
-              ))}
+    <div className="h-full w-full p-4 md:p-6 pb-24 flex relative">
+      {/* Main Video Grid */}
+      <div className={`flex-1 transition-all duration-500 ease-in-out ${isChatOpen ? 'mr-4 md:mr-6' : ''}`}>
+        
+        {tracks.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-brand-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
+                <Loader2 className="relative animate-spin text-brand-400" size={48} />
+              </div>
+              <p className="text-lg text-slate-400 mt-6 font-medium tracking-wide">Waiting for others to join...</p>
             </div>
-          )}
-        </div>
-
-        {/* Chat Overlay/Sidebar */}
-        <Chat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+        ) : (
+          <div className={`w-full h-full ${getGridLayout(tracks.length)}`}>
+            {tracks.map((track) => (
+              <ParticipantTile 
+                key={track.participant.sid ?? track.participant.identity ?? track.source} 
+                trackRef={track} 
+                className="w-full h-full shadow-2xl"
+              />
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Chat Sidebar */}
+      <Chat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
+      {/* Floating Controls */}
       <ControlBar 
         onLeave={onLeave} 
         onToggleChat={() => setIsChatOpen(!isChatOpen)} 
         isChatOpen={isChatOpen}
       />
-    </>
+    </div>
   );
 };

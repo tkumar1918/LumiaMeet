@@ -9,25 +9,21 @@ const App: React.FC = () => {
   const [error, setError] = useState<string>();
 
   const handleJoin = async (
-    roomName: string,
-    participantName: string,
-    audioEnabled: boolean,
+    roomName: string, 
+    participantName: string, 
+    audioEnabled: boolean, 
     videoEnabled: boolean
   ) => {
     setIsLoading(true);
     setError(undefined);
-
+    
     try {
-      // Token endpoint is now proxied by Vite → avoids mixed content
-      const tokenEndpoint = "/api/token";
-      const liveKitUrl = "ws://172.31.97.215:7880";
-
-      console.log(`[App] Fetching token from: ${tokenEndpoint}`);
-      console.log(`[App] LiveKit Server URL: ${liveKitUrl}`);
+      const tokenEndpoint = 'https://api.webspacehub.in/token';
+      const liveKitUrl = 'wss://livekit.webspacehub.in';
 
       const response = await fetch(tokenEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomName,
           participantName,
@@ -35,50 +31,42 @@ const App: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to obtain token: ${response.statusText} (${response.status})`
-        );
+        throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
-
-      if (!data.token) {
-        throw new Error("Server response did not contain a token");
-      }
+      if (!data.token) throw new Error('No token received');
 
       setSession({
         url: liveKitUrl,
         token: data.token,
         name: participantName,
-        audioEnabled,
-        videoEnabled,
+        audioEnabled, 
+        videoEnabled
       });
     } catch (err) {
-      console.error("[App] Connection failed:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to connect. Ensure the token server is running and accessible."
-      );
+      console.error("Connection failed:", err);
+      setError(err instanceof Error ? err.message : 'Failed to connect');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLeave = () => {
-    setSession(null);
-  };
+  const handleLeave = () => setSession(null);
 
   return (
     <div className="antialiased text-slate-200 selection:bg-brand-500/30 selection:text-brand-200">
       {!session ? (
-        <PreJoinScreen
-          onJoin={handleJoin}
-          isLoading={isLoading}
+        <PreJoinScreen 
+          onJoin={handleJoin} 
+          isLoading={isLoading} 
           error={error}
         />
       ) : (
-        <ActiveRoom config={session} onLeave={handleLeave} />
+        <ActiveRoom 
+          config={session} 
+          onLeave={handleLeave} 
+        />
       )}
     </div>
   );

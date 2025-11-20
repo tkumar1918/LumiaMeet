@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@livekit/components-react": "^2.9.16",
-    "@livekit/components-styles": "^1.2.0",
-    "livekit-client": "^2.15.16",
-    "lucide-react": "^0.554.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "lucide-react": "^0.554.0",
+    "livekit-client": "^2.15.16",
+    "@livekit/components-react": "^2.9.16",
+    "@livekit/components-styles": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
